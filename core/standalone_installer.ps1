@@ -1,4 +1,4 @@
-﻿<#
+<#
     GoLiveBypass standalone - instalador
 
     Instala direto no Discord, sem Equicord e sem Vencord. Nao precisa de Node, nem de pnpm,
@@ -951,7 +951,7 @@ function Install-Tor {
     if (Test-Path -LiteralPath (Join-Path $TorDir 'tor\data\geoip6')) {
         $geoipLines += "GeoIPv6File $(Join-Path $TorDir 'tor\data\geoip6')`n"
     }
-    [IO.File]::WriteAllText($TorTorrc, "SocksPort $TorPort`nDataDirectory $dataDir`n$geoipLines`Log notice stdout`n", (New-Object Text.UTF8Encoding $false))
+    [IO.File]::WriteAllText($TorTorrc, "SocksPort $TorPort`nDataDirectory $dataDir`n$geoipLines`Log notice stdout`nExitNodes {US}`n", (New-Object Text.UTF8Encoding $false))
 
     # O caminho do Windows: o servico (tor.exe --service install) roda como LocalService e
     # nao tem acesso a %LOCALAPPDATA% do usuario, entao o Tor nao consegue escrever no

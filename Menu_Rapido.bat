@@ -32,6 +32,7 @@ echo  [4] Ativar OpenDNS     (208.67.222.222 / 220)   - Protecao Familiar
 echo  [5] Ativar AdGuard     (94.140.14.14 / 15)      - Bloqueia Anuncios
 echo  -----------------------------------------------------------------
 echo  [D] LIGAR VPN Discord (Desbloquear Camera e Tela)
+echo  [E] LIGAR VPN Estados Unidos + Discord (Sempre Ativa ou Timer 20 min)
 echo  [X] DESLIGAR VPN Discord
 echo  [K] REINICIAR Discord Rapido (Destravar Camera/Chamada)
 echo  -----------------------------------------------------------------
@@ -56,6 +57,7 @@ if /i "%OPC%"=="3" goto QUAD9
 if /i "%OPC%"=="4" goto OPENDNS
 if /i "%OPC%"=="5" goto ADGUARD
 if /i "%OPC%"=="D" goto DISCORD_LIGAR
+if /i "%OPC%"=="E" goto DISCORD_LIGAR_EUA
 if /i "%OPC%"=="X" goto DISCORD_DESLIGAR
 if /i "%OPC%"=="K" goto DISCORD_RESTART
 if /i "%OPC%"=="B" goto DPI_LIGAR
@@ -119,6 +121,11 @@ goto MENU
 :DISCORD_LIGAR
 echo.
 call "%~dp0Ligar_VPN_Discord.bat"
+goto MENU
+
+:DISCORD_LIGAR_EUA
+echo.
+call "%~dp0Ligar_VPN_EUA_Discord.bat"
 goto MENU
 
 :DISCORD_DESLIGAR
