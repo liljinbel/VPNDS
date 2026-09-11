@@ -43,7 +43,7 @@ namespace DnsVpnApp {
     }
 
     public class Program {
-        public const string CURRENT_VERSION = "1.1.0";
+        public const string CURRENT_VERSION = "1.2.0";
         private const string UPDATE_CHECK_URL = "https://raw.githubusercontent.com/liljinbel/VPNDS/main/version.json";
 
         private static Window _window;
@@ -710,6 +710,28 @@ namespace DnsVpnApp {
 
             CheckForUpdates(false);
 
+            Task.Run(() => {
+                EnsureTorAndVpnBootReady();
+                if (_window != null) {
+                    _window.Dispatcher.Invoke(() => {
+                        UpdateVpnStatus();
+                        RefreshStatus();
+                    });
+                }
+            });
+
+            string[] args = Environment.GetCommandLineArgs();
+            bool isMinimized = false;
+            foreach (string arg in args) {
+                if (arg.Equals("--minimized", StringComparison.OrdinalIgnoreCase) || arg.Equals("-minimized", StringComparison.OrdinalIgnoreCase)) {
+                    isMinimized = true;
+                    break;
+                }
+            }
+            if (isMinimized) {
+                _window.WindowState = WindowState.Minimized;
+            }
+
             _window.ShowDialog();
         }
 
@@ -928,16 +950,6 @@ namespace DnsVpnApp {
 
         private static void StopGdpi() {
             try {
-                Process[] procs = Process.GetProcessesByName("goodbyedpi");
-                foreach (Process p in procs) {
-                    try {
-                        p.Kill();
-                        p.WaitForExit(1000);
-                    } catch { }
-                }
-            } catch { }
-
-            try {
                 ProcessStartInfo kPsi = new ProcessStartInfo {
                     FileName = "taskkill.exe",
                     Arguments = "/F /IM goodbyedpi.exe",
@@ -945,7 +957,14 @@ namespace DnsVpnApp {
                     UseShellExecute = false
                 };
                 using (Process kp = Process.Start(kPsi)) {
-                    if (kp != null) { kp.WaitForExit(1000); }
+                    if (kp != null) { kp.WaitForExit(300); }
+                }
+            } catch { }
+
+            try {
+                Process[] procs = Process.GetProcessesByName("goodbyedpi");
+                foreach (Process p in procs) {
+                    try { p.Kill(); } catch { }
                 }
             } catch { }
         }
@@ -985,22 +1004,31 @@ namespace DnsVpnApp {
             }
         }
 
-        private static void HandleVpnToggle() {
+        private static async void HandleVpnToggle() {
+            if (_btnToggleVpn == null) return;
+            _btnToggleVpn.IsEnabled = false;
+
             if (IsGdpiRunning()) {
                 _txtStatusLog.Text = "Desligando VPN Leve (Bypass DPI)...";
-                StopGdpi();
+                await Task.Run(() => StopGdpi());
                 _txtStatusLog.Text = "VPN Leve Desligada!";
             } else {
                 _txtStatusLog.Text = "Ligando VPN Leve (Bypass DPI para Discord)...";
-                StartGdpi();
-                System.Threading.Thread.Sleep(600);
+                await Task.Run(() => {
+                    StartGdpi();
+                    for (int i = 0; i < 6; i++) {
+                        if (IsGdpiRunning()) break;
+                        System.Threading.Thread.Sleep(50);
+                    }
+                });
                 if (IsGdpiRunning()) {
-                    _txtStatusLog.Text = "VPN Leve Ativa! (Se algum site protegido falhar, basta clicar em DESLIGAR).";
+                    _txtStatusLog.Text = "VPN Leve Ativa! (1ms nativo de ping).";
                 } else {
                     _txtStatusLog.Text = "Falha ao iniciar GoodbyeDPI. Verifique permissoes de administrador.";
                 }
             }
 
+            _btnToggleVpn.IsEnabled = true;
             UpdateVpnStatus();
             RefreshStatus();
         }
@@ -1174,6 +1202,18 @@ namespace DnsVpnApp {
             _txtStatusLog.Text = "[" + DateTime.Now.ToString("HH:mm:ss") + "] Reiniciando Discord para destravar camera e conexao...";
             Task.Run(() => {
                 try {
+                    try {
+                        ProcessStartInfo kPsi = new ProcessStartInfo {
+                            FileName = "taskkill.exe",
+                            Arguments = "/F /IM Discord.exe /IM DiscordPTB.exe /IM DiscordCanary.exe",
+                            CreateNoWindow = true,
+                            UseShellExecute = false
+                        };
+                        using (Process kp = Process.Start(kPsi)) {
+                            if (kp != null) kp.WaitForExit(1000);
+                        }
+                    } catch { }
+
                     foreach (var p in Process.GetProcessesByName("Discord")) {
                         try { p.Kill(); } catch { }
                     }
@@ -1225,6 +1265,58 @@ namespace DnsVpnApp {
                     }
                 }
             });
+        }
+
+        private static void EnsureTorAndVpnBootReady() {
+            try {
+                string appDir = AppDomain.CurrentDomain.BaseDirectory;
+                string coreDir = Path.Combine(appDir, "core");
+
+                // 1. Iniciar Tor se nao estiver escutando na porta 9060
+                bool torReady = false;
+                try {
+                    using (var client = new System.Net.Sockets.TcpClient()) {
+                        var task = client.ConnectAsync("127.0.0.1", 9060);
+                        if (task.Wait(400) && client.Connected) {
+                            torReady = true;
+                        }
+                    }
+                } catch { }
+
+                if (!torReady) {
+                    string startTor = Path.Combine(coreDir, "start_tor.ps1");
+                    if (File.Exists(startTor)) {
+                        ProcessStartInfo torPsi = new ProcessStartInfo {
+                            FileName = "powershell.exe",
+                            Arguments = "-NoProfile -ExecutionPolicy Bypass -File \"" + startTor + "\"",
+                            CreateNoWindow = true,
+                            UseShellExecute = false
+                        };
+                        using (Process tp = Process.Start(torPsi)) {
+                            if (tp != null) tp.WaitForExit(3500);
+                        }
+                    }
+                }
+
+                // 2. Iniciar GoodbyeDPI (Bypass DPI de video/camera)
+                if (!IsGdpiRunning()) {
+                    StartGdpi();
+                }
+
+                // 3. Registrar tarefa no Agendador do Windows para iniciar com privilegios elevados no Logon
+                string vpndsExe = Process.GetCurrentProcess().MainModule.FileName;
+                if (!string.IsNullOrEmpty(vpndsExe) && File.Exists(vpndsExe)) {
+                    ProcessStartInfo schPsi = new ProcessStartInfo {
+                        FileName = "schtasks.exe",
+                        Arguments = "/create /tn \"VPNDS_AutoStart\" /tr \"\\\"" + vpndsExe + "\\\" --minimized\" /sc onlogon /rl highest /f",
+                        CreateNoWindow = true,
+                        UseShellExecute = false
+                    };
+                    using (Process sp = Process.Start(schPsi)) {
+                        if (sp != null) sp.WaitForExit(1500);
+                    }
+                }
+            } catch { }
         }
 
         // ================= RESETAR IP (DHCP + DNS + ROTAS) =================

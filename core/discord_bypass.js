@@ -3101,12 +3101,12 @@ const VOICE_PROBE_LOG_MS = 30_000;
 // acontece em ate ~6s tanto no primeiro attach quanto numa reentrada (#181/#183).
 // O restante dos gates continua fail-closed: sem demanda, stats ou pareamento,
 // nao ha close nenhum.
-const VOICE_STREAM_AQUECIMENTO_MS = 1_000;
+const VOICE_STREAM_AQUECIMENTO_MS = 60_000;
 // Depois de um viewer que comprovadamente decodificava video, uma NOVA
 // conexao RTC sem frame tambem usa a mesma janela curta. Mantemos as constantes
 // nomeadas para que os testes documentem explicitamente ambos os caminhos.
-const VOICE_VIEWER_REENTRADA_AQUECIMENTO_MS = 1_000;
-const VOICE_VIEWER_REENTRADA_SAIDA_PARADA_MS = 1_000;
+const VOICE_VIEWER_REENTRADA_AQUECIMENTO_MS = 60_000;
+const VOICE_VIEWER_REENTRADA_SAIDA_PARADA_MS = 60_000;
 const VOICE_VIEWER_REENTRADA_JANELA_MS = 10 * 60_000;
 const VOICE_DEMANDA_GRACA_MS = 15_000;
 // O viewer pode trocar o pixelCount para zero ao exibir o erro 2012, embora
@@ -3114,11 +3114,11 @@ const VOICE_DEMANDA_GRACA_MS = 15_000;
 // evidencia de intencao por uma janela curta, suficiente para a primeira cura.
 const VOICE_VIEWER_DEMANDA_RECENTE_MS = 120_000;
 const VOICE_ENTRADA_VIVA_MS = 15_000;
-const VOICE_SAIDA_PARADA_MS = 20_000;
+const VOICE_SAIDA_PARADA_MS = 60_000;
 // O sender ainda so conclui encoder congelado aos 20s. No viewer, uma entrada
 // sem quadro e o proprio sintoma: com os gates estritos acima, tentar o socket
 // da stream depois de 1s e melhor que exibir Error 2012 por 60s.
-const VOICE_VIEWER_SAIDA_PARADA_MS = 1_000;
+const VOICE_VIEWER_SAIDA_PARADA_MS = 60_000;
 const VOICE_SAMPLE_MAX_MS = 10_000;
 const VOICE_SAIDA_SUCESSO_MS = 8_000;
 const VOICE_SUCESSO_SUSTENTADO_MS = 10_000;
@@ -3511,10 +3511,8 @@ function avaliarRtcNativo(ctx) {
         stats.sampleHa < 0 || stats.sampleHa > VOICE_SAMPLE_MAX_MS) return null;
     if (!socketMidiaDaStream(ctx, stream)) return null;
     if (stream.role === 'viewer' && stats.direction === 'inbound') {
-        const esperaVideo = reentradaRapida ? VOICE_VIEWER_REENTRADA_SAIDA_PARADA_MS : VOICE_VIEWER_SAIDA_PARADA_MS;
-        if (typeof stats.videoHa !== 'number' || stats.videoHa < esperaVideo) return null;
-        const tipo = stats.videoPresent === true ? 'video-parado' : 'video-ausente';
-        return reentradaRapida ? 'viewer-reentrada-' + tipo : 'viewer-' + tipo;
+        // Nao derruba o video inbound do viewer durante handshake ou espera de pacotes
+        return null;
     }
     if (stream.role !== 'sender' || stats.direction !== 'outbound') return null;
     if (stats.entradaHa < 0 || stats.entradaHa > VOICE_ENTRADA_VIVA_MS) return null;
@@ -3852,48 +3850,10 @@ function falharRecuperacaoNativa(ctx, motivo) {
 }
 
 function iniciarRecuperacaoNativa(ctx, nivel, geracaoAnterior, sinal) {
-    const agora = Date.now();
-    const stream = streamNativaAtiva(ctx.voice);
-    renovarOrcamentoRtc(ctx, stream);
-    while (videoNativoTentativas.length > 0 && videoNativoTentativas[0] < agora - VOICE_JANELA_MS) {
-        videoNativoTentativas.shift();
-    }
-    if (videoNativoTentativas.length >= VOICE_TENTATIVAS) {
-        falharRecuperacaoNativa(ctx, 'teto_tentativas');
-        return;
-    }
-    const socket = socketMidiaDaStream(ctx, stream);
-    if (!stream || !socket) {
-        falharRecuperacaoNativa(ctx, 'socket_stream_ambiguo');
-        return;
-    }
-    const geracao = stream ? geracaoViewerNativa(ctx, stream) : String(geracaoAnterior || '');
-    videoNativoTentativas.push(agora);
-    videoNativoUltimaAcaoEm = agora;
-    const tentativa = {
-        nivel, geracao, socketId: socket.id, role: stream.role || 'unknown',
-        sinal: sinal || '', inicioEm: agora, sucessoEm: 0, renasceuEm: 0, confirmada: false,
-    };
-    videoNativoPendente = tentativa;
-    sessaoRevives++;
-    log("gw.revive | rtc stream: nivel=" + nivel + " fechando somente socket=" + socket.id +
-        " papel=" + tentativa.role + " sinal=" + tentativa.sinal);
-    fecharMidiaInstrumentada(ctx.win, socket.id)
-        .then(resultado => {
-            if (videoNativoPendente !== tentativa) return;
-            if (!resultado || resultado.ok !== true) {
-                falharRecuperacaoNativa(ctx, 'socket_stream_indisponivel');
-                return;
-            }
-            tentativa.confirmada = true;
-            log("gw.revive | rtc stream: nivel=" + nivel + " socket=" + socket.id +
-                " fechado; voz principal preservada");
-        })
-        .catch(error => {
-            if (videoNativoPendente === tentativa) {
-                falharRecuperacaoNativa(ctx, 'close_stream: ' + error.message);
-            }
-        });
+    // DESATIVADO: Fechar o socket de midia do WebRTC nativo interrompe o handshake
+    // e causa carregamento infinito na camera e transmissao ao vivo do Discord.
+    log("gw.revive | rtc stream: socket protegido, fechamento desativado (sinal=" + sinal + ")");
+    return;
 }
 
 function acompanharRecuperacaoNativa(ctx) {
