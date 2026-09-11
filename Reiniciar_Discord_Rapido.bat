@@ -13,10 +13,12 @@ echo ===================================================================
 echo     REINICIAR DISCORD RAPIDO (DESTRAVAR CAMERA E TRANSMISSAO)
 echo ===================================================================
 echo.
-echo [1/3] Encerrando processos travados do Discord...
+echo [1/3] Encerrando processos antigos (Discord, Tor, GoodbyeDPI)...
 taskkill /F /IM Discord.exe >nul 2>&1
 taskkill /F /IM DiscordPTB.exe >nul 2>&1
 taskkill /F /IM DiscordCanary.exe >nul 2>&1
+taskkill /F /IM tor.exe >nul 2>&1
+taskkill /F /IM goodbyedpi.exe >nul 2>&1
 timeout /t 1 /nobreak >nul
 
 echo [2/3] Aplicando sincronizacao dos scripts e iniciando Tor 9060...

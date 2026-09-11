@@ -22,7 +22,7 @@ if (Test-Path -LiteralPath $torExe) {
     $geoip = (Join-Path $torDir 'data\geoip').Replace('\', '/')
     $geoip6 = (Join-Path $torDir 'data\geoip6').Replace('\', '/')
 
-    $torrcContent = "SocksPort 9060`nDataDirectory `"$torData`"`nLog notice stdout`nExcludeNodes {BR}`nStrictNodes 1`nFastFirstHopPK 1`n"
+    $torrcContent = "SocksPort 9060`nDataDirectory `"$torData`"`nLog notice stdout`nExitNodes {US}`nStrictNodes 1`nExcludeNodes {BR}`nFastFirstHopPK 1`n"
     if (Test-Path -LiteralPath (Join-Path $torDir 'data\geoip')) { $torrcContent += "GeoIPFile `"$geoip`"`n" }
     if (Test-Path -LiteralPath (Join-Path $torDir 'data\geoip6')) { $torrcContent += "GeoIPv6File `"$geoip6`"`n" }
     [IO.File]::WriteAllText($torrc, $torrcContent, [Text.Encoding]::ASCII)
