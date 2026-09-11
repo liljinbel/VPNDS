@@ -1,0 +1,32 @@
+===================================================================
+                 VPNDS • INSTALAÇÃO E USO
+===================================================================
+
+Bem-vindo ao VPNDS!
+Esta ferramenta oferece:
+1. DNS de ultra-baixa latência IPv4 + IPv6 (Cloudflare, Google, etc).
+2. Bypass de DPI com GoodbyeDPI integrado (1ms de ping).
+3. Desbloqueio definitivo de compartilhamento de tela e câmera no Discord.
+
+-------------------------------------------------------------------
+COMO INSTALAR NO SEU COMPUTADOR:
+-------------------------------------------------------------------
+1. Dê 2 cliques no arquivo:
+   >>> Instalador_VPNDS.exe <<<
+
+2. Siga os passos na tela (Avançar > Escolher local > Instalar).
+   - O assistente criará o atalho na sua Área de Trabalho.
+   - O assistente configurará para iniciar com o Windows.
+   - O assistente aplicará o desbloqueio do Discord automaticamente!
+
+3. Clique em "Concluir" e pronto!
+
+-------------------------------------------------------------------
+MODO PORTÁTIL (SEM INSTALAR):
+-------------------------------------------------------------------
+Se preferir não instalar, você também pode simplesmente dar 2 cliques
+no arquivo:
+   >>> VPNDS.exe <<<
+
+Ele abrirá o Painel de Controle diretamente.
+===================================================================

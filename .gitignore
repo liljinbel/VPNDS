@@ -1,0 +1,10 @@
+*.old
+*.tmp
+*.log
+bin/
+obj/
+*.user
+*.suo
+VPNDS_Instalador/
+vpnds_extract/
+

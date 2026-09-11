@@ -1,0 +1,8 @@
+{
+  "version": "1.1.0",
+  "releaseDate": "2026-09-11",
+  "title": "VPNDS v1.1.0 - Correção de Câmera e Boot Rápido",
+  "changelog": "- Correção definitiva de tela e câmera no Discord (0% de vazamento para o Brasil)\n- Inicialização ultra-rápida no boot do Windows com fast-polling de 300ms\n- Novos scripts rápidos de 1 clique para ligar, desligar e reiniciar VPN\n- Sistema de Atualização Automática integrado com aviso em tempo real",
+  "downloadUrl": "https://raw.githubusercontent.com/liljinbel/VPNDS/main/VPNDS.exe",
+  "packageUrl": "https://raw.githubusercontent.com/liljinbel/VPNDS/main/VPNDS_Instalador.zip"
+}
